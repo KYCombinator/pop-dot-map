@@ -1,10 +1,17 @@
-import Image from "next/image";
-
 export default function Home() {
+  const googleAPIKey = process.env.GOOGLE_API_KEY;
 
   return (
     <div className="map">
-      <img src={"https://maps.googleapis.com/maps/api/staticmap?center=KS&zoom=3&size=400x400&scale=2&key=AIzaSyAQUXhP4aG6RPFLHSALrm0-YhRePs9IwXo"}></img>
+      <iframe
+        width="450"
+        height="250"
+        frameBorder="0"
+        style={{ border: 0 }}
+        referrerPolicy="no-referrer-when-downgrade"
+        src={`https://www.google.com/maps/embed/v1/place?key=${googleAPIKey}&q=Louisville,KY`}
+        allowFullScreen
+      ></iframe>
     </div>
   );
 }
