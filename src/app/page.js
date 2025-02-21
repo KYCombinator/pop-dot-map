@@ -6,7 +6,7 @@ export default function Home() {
       <iframe
         className="h-dvh w-dvw"
         referrerPolicy="no-referrer-when-downgrade"
-        src={`https://www.google.com/maps/embed/v1/place?key=${googleAPIKey}&q=38.2527,-85.7585&zoom=12`}
+        src={`https://www.google.com/maps/embed/v1/place?key=${googleAPIKey}&q=Louisville,KY`}
         allowFullScreen
       ></iframe>
     </div>
