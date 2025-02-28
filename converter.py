@@ -34,4 +34,4 @@ df = pd.read_csv(year+census)
 county_total_pop = df.groupby("county")["H1_001N"].transform("sum")
 df["county_total"] = county_total_pop
 sorted_df = df.sort_values(by='county_total', ascending=False)
-# print(sorted_df.head().to_string())
+print(sorted_df.head().to_string())
