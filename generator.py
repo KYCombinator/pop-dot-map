@@ -67,5 +67,4 @@ merged_gdf = gdf.merge(census_data, left_on="GEOID20", right_on="GEO_ID", how="l
 merged_gdf["latitude"] = merged_gdf.geometry.centroid.y
 merged_gdf["longitude"] = merged_gdf.geometry.centroid.x
 
-# Step 6: Save or Use the Data
 print(merged_gdf[["GEOID20", "POP20", "latitude", "longitude"]].head())
