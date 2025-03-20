@@ -42,6 +42,8 @@ match response.status_code:
 
 census_data = pd.read_csv(year+census)
 census_data["GEO_ID"] = census_data["GEO_ID"].str.replace("1000000US", "", regex=False)
+
+print(census_data.head().to_string())
 BUCKET_NAME = "censusawsbucket"
 FILE_KEY = "tl_2020_21_tabblock20.zip"
 
