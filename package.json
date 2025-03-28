@@ -9,8 +9,11 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.0",
     "@googlemaps/js-api-loader": "^1.16.8",
     "@googlemaps/markerclusterer": "^2.5.3",
+    "@mui/material": "^6.4.8",
     "@vis.gl/react-google-maps": "^1.5.1",
     "next": "^15.1.6",
     "react": "^19.0.0",
