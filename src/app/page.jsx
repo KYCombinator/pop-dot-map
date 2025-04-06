@@ -11,7 +11,11 @@ export default function Home() {
   const [toggleOverlay, setToggleOverlay] = useState(null);
 
   return (
-    <div className="w-dvw h-dvh bg-zinc-800">
+    <div className="flex flex-col w-screen h-screen bg-zinc-800">
+      <div>
+        <Title />
+      </div>
+
       <div className="flex flex-wrap justify-center w-full bg-zinc-800">
         <div className="p-10">
           <OverlayToggleButton toggleOverlay={toggleOverlay} />
@@ -21,8 +25,8 @@ export default function Home() {
         </div>
       </div>
 
-      <div className="flex h-full w-full">
-        <div className="flex-grow w-full h-full bg-zinc-400 rounded-3xl overflow-hidden">
+      <div className="flex flex-grow w-full">
+        <div className="w-4/5 h-full rounded-3xl overflow-hidden">
           <APIProvider apiKey={googleAPIKey}>
             <Map
               defaultZoom={12}
@@ -39,6 +43,8 @@ export default function Home() {
             <OverlayMap setToggleOverlay={setToggleOverlay} />
           </APIProvider>
         </div>
+
+        <div className="w-1/5 h-full bg-zinc-500 rounded-3xl px-8"></div>
       </div>
     </div>
   );
@@ -121,22 +127,46 @@ const marks = [
 ];
 
 function SliderBar() {
+  const [sliderValue, setSliderValue] = useState(51);
+
+  const handleSliderChange = (event) => {
+    setSliderValue(event.target.value);
+  };
+
+  const chosenMark = marks.find((mark) => mark.value === Number(sliderValue));
+  const chosenYear = chosenMark.label;
+
   return (
-    <Box sx={{ width: 500 }}>
-      <Slider
-        aria-label="Custom Marks"
-        defaultValue={50}
-        getAriaValueText={(value) => "{value}"}
-        step={null}
-        valueLabelDisplay="off"
-        marks={marks}
-        color="secondary"
-        sx={{
-          "& .MuiSlider-markLabel": {
-            color: "white",
-          },
-        }}
-      />
-    </Box>
+    <div>
+      <h1>{chosenYear}</h1>
+      <Box sx={{ width: 500 }}>
+        <Slider
+          aria-label="Custom Marks"
+          defaultValue={50}
+          getAriaValueText={(value) => "{value}"}
+          step={null}
+          valueLabelDisplay="off"
+          marks={marks}
+          color="secondary"
+          onChange={handleSliderChange}
+          sx={{
+            "& .MuiSlider-markLabel": {
+              color: "white",
+            },
+          }}
+        />
+      </Box>
+    </div>
+  );
+}
+
+function Title() {
+  return (
+    <h1 className="mb-4 text-3xl font-extrabold text-gray-900 dark:text-white md:text-5xl lg:text-6xl">
+      <span className="text-transparent bg-clip-text bg-gradient-to-r to-fuchsia-600 from-purple-600">
+        Population
+      </span>{" "}
+      Dot Map
+    </h1>
   );
 }
