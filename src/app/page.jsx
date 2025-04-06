@@ -12,16 +12,13 @@ export default function Home() {
 
   return (
     <div className="flex flex-col w-screen h-screen bg-zinc-800">
-      <div>
+      <div className="pl-10 pt-6">
         <Title />
       </div>
 
       <div className="flex flex-wrap justify-center w-full bg-zinc-800">
         <div className="p-10">
           <OverlayToggleButton toggleOverlay={toggleOverlay} />
-        </div>
-        <div className="p-10">
-          <SliderBar />
         </div>
       </div>
 
@@ -44,7 +41,9 @@ export default function Home() {
           </APIProvider>
         </div>
 
-        <div className="w-1/5 h-full bg-zinc-500 rounded-3xl px-8"></div>
+        <div className="w-1/5 h-full bg-zinc-700 rounded-3xl px-8">
+          <SliderBar />
+        </div>
       </div>
     </div>
   );
@@ -85,7 +84,7 @@ function OverlayMap({ setToggleOverlay }) {
 function OverlayToggleButton({ toggleOverlay }) {
   return (
     <button
-      className="bg-purple-500 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded"
+      className="bg-purple-600 hover:bg-purple-800 text-white font-bold py-2 px-4 rounded"
       onClick={() => {
         toggleOverlay();
       }}
@@ -97,37 +96,41 @@ function OverlayToggleButton({ toggleOverlay }) {
 
 const marks = [
   {
-    value: 0,
+    value: 1,
+    label: "1950",
+  },
+  {
+    value: 15,
     label: "1960",
   },
   {
-    value: 17,
+    value: 29,
     label: "1970",
   },
   {
-    value: 34,
+    value: 43,
     label: "1980",
   },
   {
-    value: 51,
+    value: 57,
     label: "1990",
   },
   {
-    value: 68,
+    value: 71,
     label: "2000",
   },
   {
-    value: 84,
+    value: 85,
     label: "2010",
   },
   {
-    value: 100,
+    value: 99,
     label: "2020",
   },
 ];
 
 function SliderBar() {
-  const [sliderValue, setSliderValue] = useState(51);
+  const [sliderValue, setSliderValue] = useState(99);
 
   const handleSliderChange = (event) => {
     setSliderValue(event.target.value);
@@ -138,20 +141,25 @@ function SliderBar() {
 
   return (
     <div>
-      <h1>{chosenYear}</h1>
-      <Box sx={{ width: 500 }}>
+      <h1 className="p-10">Current Year: {chosenYear}</h1>
+      <Box sx={{ height: 600 }}>
         <Slider
-          aria-label="Custom Marks"
-          defaultValue={50}
-          getAriaValueText={(value) => "{value}"}
+          orientation="vertical"
+          defaultValue={99}
           step={null}
           valueLabelDisplay="off"
           marks={marks}
           color="secondary"
           onChange={handleSliderChange}
           sx={{
+            width: 15,
+            color: "#7e22ce",
             "& .MuiSlider-markLabel": {
               color: "white",
+              fontSize: "1.4rem",
+            },
+            "& .MuiSlider-thumb": {
+              backgroundColor: "#581c87",
             },
           }}
         />
