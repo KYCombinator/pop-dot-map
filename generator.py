@@ -122,7 +122,7 @@ def generate_tile(merged_gdf, zoomlevel, tile_x, tile_y, output_folder="tiles"):
             draw.ellipse((dot_x + jitter_x, dot_y + jitter_y, dot_x + jitter_x + 2, dot_y + jitter_y + 2), fill="red")
 
     os.makedirs(output_folder, exist_ok=True)
-    tile_path = os.path.join(output_folder, f"tile_{zoomlevel}_{tile_x}_{tile_y}.png")
+    tile_path = os.path.join(output_folder, f"tile_{tile_x}_{tile_y}.png")
     tile_img.save(tile_path)
     print(f"Saved {tile_path}")
 
