@@ -23,7 +23,7 @@ def get_info():
     PARAMS = {
         "get": "NAME,H1_001N,GEO_ID",
         "for": "block:*",
-        "in": "state:21 county:*",
+        "in": "state:21 county:111",
         "key": os.getenv("CENSUS_API_KEY")
     }
 
