@@ -187,55 +187,55 @@ function Title() {
   );
 }
 
-function MapOverlay() {
+// function MapOverlay() {
 
-//   Tile numbers to lon./lat.
+// //   Tile numbers to lon./lat.
 
-//    n = 2 ^ zoom
-//    lon_deg = xtile / n * 360.0 - 180.0
-//    lat_rad = arctan(sinh(π * (1 - 2 * ytile / n)))
-//    lat_deg = lat_rad * 180.0 / π
-//    This code returns the coordinate of the _upper left_ (northwest-most)-point of the tile.
+// //    n = 2 ^ zoom
+// //    lon_deg = xtile / n * 360.0 - 180.0
+// //    lat_rad = arctan(sinh(π * (1 - 2 * ytile / n)))
+// //    lat_deg = lat_rad * 180.0 / π
+// //    This code returns the coordinate of the _upper left_ (northwest-most)-point of the tile.
 
-  var long = 1092 / (2^12) * 360 -180;
-  var lat = 180 / Math.PI * Math.atan(Math.sinh(1576 / 2^12 * Math.PI));
+//   var long = 1092 / (2^12) * 360 -180;
+//   var lat = 180 / Math.PI * Math.atan(Math.sinh(1576 / 2^12 * Math.PI));
 
-  useEffect(() => {
+//   useEffect(() => {
 
-    let map;
+//     let map;
 
-    import('leaflet').then((L) => {
-      map = L.map('map', {
-        center: [38.67, -85.18],
-        zoom: 12,
-        minZoom: 12,
-        maxZoom: 19
+//     import('leaflet').then((L) => {
+//       map = L.map('map', {
+//         center: [38.67, -85.18],
+//         zoom: 12,
+//         minZoom: 12,
+//         maxZoom: 19
          
-      });
+//       });
 
-      L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-        maxZoom: 19,
-      }).addTo(map);
+//       L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+//         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+//         maxZoom: 19,
+//       }).addTo(map);
 
-      var imageUrl = "images/0_tile_12_1092_1576.png",
-          imageBounds = [
-            [38.67, -85.18], // South west corner
-            [38.69, -85.16]  // north east corner
-          ];
+//       var imageUrl = "images/0_tile_12_1092_1576.png",
+//           imageBounds = [
+//             [38.67, -85.18], // South west corner
+//             [38.69, -85.16]  // north east corner
+//           ];
       
-      L.imageOverlay(imageUrl, imageBounds).addTo(map);
+//       L.imageOverlay(imageUrl, imageBounds).addTo(map);
 
-    });
+//     });
     
-  }, []);
+//   }, []);
 
-  return (
-    <div id="map" className="w-4/5 h-full rounded-3xl overflow-hidden">
+//   return (
+//     <div id="map" className="w-4/5 h-full rounded-3xl overflow-hidden">
 
-    </div>
-  );
-};
+//     </div>
+//   );
+// };
 
 function calcBounds(x, y) {
   const zoom = 12;
