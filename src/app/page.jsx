@@ -4,11 +4,16 @@ import React, { useEffect, useRef, useState } from "react";
 import { APIProvider, Map, useMap } from "@vis.gl/react-google-maps";
 import Box from "@mui/material/Box";
 import Slider from "@mui/material/Slider";
+import 'leaflet/dist/leaflet.css';
 
 export default function Home() {
   const googleAPIKey = process.env.NEXT_PUBLIC_GOOGLE_API_KEY;
 
   const [toggleOverlay, setToggleOverlay] = useState(null);
+  const [sliderValue, setSliderValue] = useState(99);
+
+  const chosenMark = marks.find((mark) => mark.value === Number(sliderValue));
+  const chosenYear = chosenMark.label;
 
   return (
     <div className="flex flex-col w-screen h-screen bg-zinc-800">
@@ -18,15 +23,17 @@ export default function Home() {
 
       <div className="flex flex-wrap justify-center w-full bg-zinc-800">
         <div className="p-10">
-          <OverlayToggleButton toggleOverlay={toggleOverlay} />
+          {/* <OverlayToggleButton toggleOverlay={toggleOverlay} /> */}
         </div>
       </div>
 
       <div className="flex flex-grow w-full">
+        {/* <MapOverlay /> */}
         <div className="w-4/5 h-full rounded-3xl overflow-hidden">
           <APIProvider apiKey={googleAPIKey}>
             <Map
               defaultZoom={12}
+              
               defaultCenter={{ lat: 38.2469, lng: -85.7664 }}
               onCameraChanged={(ev) =>
                 console.log(
@@ -40,9 +47,12 @@ export default function Home() {
             <OverlayMap setToggleOverlay={setToggleOverlay} />
           </APIProvider>
         </div>
-
+        
         <div className="w-1/5 h-full bg-zinc-700 rounded-3xl px-8">
-          <SliderBar />
+          <SliderBar
+            sliderValue={sliderValue}
+            setSliderValue={setSliderValue}
+          />
         </div>
       </div>
     </div>
@@ -129,9 +139,7 @@ const marks = [
   },
 ];
 
-function SliderBar() {
-  const [sliderValue, setSliderValue] = useState(99);
-
+function SliderBar({ sliderValue, setSliderValue }) {
   const handleSliderChange = (event) => {
     setSliderValue(event.target.value);
   };
@@ -178,3 +186,53 @@ function Title() {
     </h1>
   );
 }
+
+function MapOverlay() {
+
+//   Tile numbers to lon./lat.
+
+//    n = 2 ^ zoom
+//    lon_deg = xtile / n * 360.0 - 180.0
+//    lat_rad = arctan(sinh(π * (1 - 2 * ytile / n)))
+//    lat_deg = lat_rad * 180.0 / π
+//    This code returns the coordinate of the _upper left_ (northwest-most)-point of the tile.
+
+  var long = 1092 / (2^12) * 360 -180;
+  var lat = 180 / Math.PI * Math.atan(Math.sinh(1576 / 2^12 * Math.PI));
+
+  useEffect(() => {
+
+    let map;
+
+    import('leaflet').then((L) => {
+      map = L.map('map', {
+        center: [38.67, -85.18],
+        zoom: 12,
+        minZoom: 12,
+        maxZoom: 19
+         
+      });
+
+      L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+        maxZoom: 19,
+      }).addTo(map);
+
+      var imageUrl = "images/0_tile_12_1092_1576.png",
+          imageBounds = [
+            [38.67, -85.18], // South west corner
+            [38.69, -85.16]  // north east corner
+          ];
+      
+      L.imageOverlay(imageUrl, imageBounds).addTo(map);
+
+    });
+    
+  }, []);
+
+  return (
+    <div id="map" className="w-4/5 h-full rounded-3xl overflow-hidden">
+
+    </div>
+  );
+};
