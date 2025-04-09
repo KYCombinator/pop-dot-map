@@ -236,3 +236,33 @@ function MapOverlay() {
     </div>
   );
 };
+
+function calcBounds(x, y) {
+  const zoom = 12;
+  const n = Math.pow(2, zoom);
+
+  const West = (x / n) * 360 - 180;
+  const East = ((x + 1) / n) * 360 - 180;
+
+  const North = Math.atan(Math.sinh(Math.PI * (1 - 2 * y / n))) * (180 / Math.PI);
+  const South = Math.atan(Math.sinh(Math.PI * (1 - 2 * (y + 1) / n))) * (180 / Math.PI);
+
+  return {
+    north: North,
+    south: South,
+    east: East,
+    west: West
+  };
+
+};
+
+function getCoords(urlString) {
+
+  const re = /tile_(\d+)_(\d+).png/;
+  var match = urlString.match(re);
+
+  var xValue = parseInt(match[1]);
+  var yValue = parseInt(match[2]);
+
+  return {x: xValue, y: yValue};
+};
