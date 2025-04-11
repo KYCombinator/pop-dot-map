@@ -9,22 +9,12 @@ import 'leaflet/dist/leaflet.css';
 export default function Home() {
   const googleAPIKey = process.env.NEXT_PUBLIC_GOOGLE_API_KEY;
 
-  const [toggleOverlay, setToggleOverlay] = useState(null);
-  const [sliderValue, setSliderValue] = useState(99);
-
-  const chosenMark = marks.find((mark) => mark.value === Number(sliderValue));
-  const chosenYear = chosenMark.label;
+  const [toggleOverlay, setToggleOverlay] = useState(() => () => {});
 
   return (
     <div className="flex flex-col w-screen h-screen bg-zinc-800">
       <div className="pl-10 pt-6">
         <Title />
-      </div>
-
-      <div className="flex flex-wrap justify-center w-full bg-zinc-800">
-        <div className="p-10">
-          {/* <OverlayToggleButton toggleOverlay={toggleOverlay} /> */}
-        </div>
       </div>
 
       <div className="flex flex-grow w-full">
@@ -33,7 +23,6 @@ export default function Home() {
           <APIProvider apiKey={googleAPIKey}>
             <Map
               defaultZoom={12}
-              
               defaultCenter={{ lat: 38.2469, lng: -85.7664 }}
               onCameraChanged={(ev) =>
                 console.log(
@@ -47,12 +36,13 @@ export default function Home() {
             <OverlayMap setToggleOverlay={setToggleOverlay} />
           </APIProvider>
         </div>
-        
+
         <div className="w-1/5 h-full bg-zinc-700 rounded-3xl px-8">
-          <SliderBar
-            sliderValue={sliderValue}
-            setSliderValue={setSliderValue}
-          />
+          <div className="p-10">
+            <OverlayToggleButton toggleOverlay={toggleOverlay} />
+          </div>
+
+          <SliderBar />
         </div>
       </div>
     </div>
@@ -95,9 +85,7 @@ function OverlayToggleButton({ toggleOverlay }) {
   return (
     <button
       className="bg-purple-600 hover:bg-purple-800 text-white font-bold py-2 px-4 rounded"
-      onClick={() => {
-        toggleOverlay();
-      }}
+      onClick={toggleOverlay}
     >
       Toggle Overlay
     </button>
@@ -139,26 +127,36 @@ const marks = [
   },
 ];
 
-function SliderBar({ sliderValue, setSliderValue }) {
-  const handleSliderChange = (event) => {
-    setSliderValue(event.target.value);
+function SliderBar() {
+  const [sliderValue, setSliderValue] = useState(1);
+
+  const handleSlider = (event) => {
+    const newValue = Number(event.target.value);
+    setSliderValue(newValue);
+
+    const mark = marks.find((mark) => mark.value === newValue);
+    handleYear(mark.label);
   };
 
-  const chosenMark = marks.find((mark) => mark.value === Number(sliderValue));
-  const chosenYear = chosenMark.label;
+  const handleYear = (newYearValue) => {
+    console.log("New year is: ", newYearValue);
+    // will call function that gets folder of corresponding year in S3 and loops through each picture
+    // placing each image on the map
+    // use a loading indicator of some sort? show a spinner or something while the
+    // images are placed on the map?
+  };
 
   return (
     <div>
-      <h1 className="p-10">Current Year: {chosenYear}</h1>
       <Box sx={{ height: 600 }}>
         <Slider
           orientation="vertical"
-          defaultValue={99}
+          value={sliderValue}
           step={null}
           valueLabelDisplay="off"
           marks={marks}
           color="secondary"
-          onChange={handleSliderChange}
+          onChange={handleSlider}
           sx={{
             width: 15,
             color: "#7e22ce",
@@ -210,7 +208,7 @@ function Title() {
 //         zoom: 12,
 //         minZoom: 12,
 //         maxZoom: 19
-         
+
 //       });
 
 //       L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -223,11 +221,11 @@ function Title() {
 //             [38.67, -85.18], // South west corner
 //             [38.69, -85.16]  // north east corner
 //           ];
-      
+
 //       L.imageOverlay(imageUrl, imageBounds).addTo(map);
 
 //     });
-    
+
 //   }, []);
 
 //   return (
@@ -235,34 +233,36 @@ function Title() {
 
 //     </div>
 //   );
-// };
+// }
 
 function calcBounds(x, y) {
   const zoom = 12;
   const n = Math.pow(2, zoom);
 
-  const West = (x / n) * 360 - 180;
+  const North =
+    Math.atan(Math.sinh(Math.PI * (1 - (2 * y) / n))) * (180 / Math.PI);
+  const South =
+    Math.atan(Math.sinh(Math.PI * (1 - (2 * (y + 1)) / n))) * (180 / Math.PI);
   const East = ((x + 1) / n) * 360 - 180;
-
-  const North = Math.atan(Math.sinh(Math.PI * (1 - 2 * y / n))) * (180 / Math.PI);
-  const South = Math.atan(Math.sinh(Math.PI * (1 - 2 * (y + 1) / n))) * (180 / Math.PI);
+  const West = (x / n) * 360 - 180;
 
   return {
     north: North,
     south: South,
     east: East,
-    west: West
+    west: West,
   };
-
-};
+}
 
 function getCoords(urlString) {
-
   const re = /tile_(\d+)_(\d+).png/;
   var match = urlString.match(re);
 
   var xValue = parseInt(match[1]);
   var yValue = parseInt(match[2]);
 
-  return {x: xValue, y: yValue};
-};
+  return { x: xValue, y: yValue };
+}
+
+// add something that gives the user more information about what they are looking at and why
+// it was created, etc.
