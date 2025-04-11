@@ -4,6 +4,7 @@ import requests
 import csv
 import mercantile
 import numpy as np
+from shapely.geometry import Point, Polygon
 import math
 
 
@@ -44,6 +45,22 @@ def get_info():
     census_data = pd.read_csv(year+census)
     return census_data
 
+def generate_random_points(polygon: Polygon, num_points: int, max_attempts=5000):
+    """Generate up to `num_points` random points inside the given polygon."""
+    points = []
+    minx, miny, maxx, maxy = polygon.bounds
+    attempts = 0
+
+    while len(points) < num_points and attempts < max_attempts:
+        x = np.random.uniform(minx, maxx)
+        y = np.random.uniform(miny, maxy)
+        p = Point(x, y)
+        if polygon.contains(p):
+            points.append(p)
+        attempts += 1
+
+    return points
+
 def connecting_to_s3(census_data):
     census_data["GEO_ID"] = census_data["GEO_ID"].str.replace("1000000US", "", regex=False)
 
@@ -75,6 +92,8 @@ def connecting_to_s3(census_data):
     merged_gdf["latitude"] = merged_gdf["centroid"].y
     merged_gdf["longitude"] = merged_gdf["centroid"].x
 
+    merged_gdf['H1_001N'] = merged_gdf['H1_001N'].fillna(0).astype(int)
+
     print(merged_gdf[["GEOID20", "POP20", "latitude", "longitude"]].head(20))
 
     return merged_gdf
@@ -97,9 +116,9 @@ def latlon_to_pixel(lat, lon, zoom):
     n = 2.0 ** zoom
     x = (lon + 180.0) / 360.0 * n * 256
     y = (1.0 - math.log(math.tan(math.radians(lat)) + (1 / math.cos(math.radians(lat)))) / math.pi) / 2.0 * n * 256
-    return int(x) % 256, int(y) % 256
+    return x, y
 
-def generate_tile(merged_gdf, zoomlevel, tile_x, tile_y, output_folder="tiles"):
+def generate_tile(merged_gdf, zoomlevel, tile_x, tile_y, output_folder="2020_Census_Year"):
     tile_img = Image.new("RGBA", (256, 256), (255, 255, 255, 0))
     draw = ImageDraw.Draw(tile_img)
 
@@ -113,13 +132,35 @@ def generate_tile(merged_gdf, zoomlevel, tile_x, tile_y, output_folder="tiles"):
     ]
 
     for _, row in filtered_df.iterrows():
-        lat, lon, pop = row['latitude'], row['longitude'], row['POP20']
-        dot_x, dot_y = latlon_to_pixel(lat, lon, zoomlevel)
-        
-        for _ in range(pop):
-            jitter_x = np.random.randint(-2, 2)
-            jitter_y = np.random.randint(-2, 2)
-            draw.ellipse((dot_x + jitter_x, dot_y + jitter_y, dot_x + jitter_x + 2, dot_y + jitter_y + 2), fill="red")
+        pop = row['H1_001N']
+        if pop <= 0:
+            continue
+
+        geom = row['geometry']
+        if geom.is_empty or geom is None:
+            continue
+
+        try:
+            points = generate_random_points(geom, pop)
+        except Exception as e:
+            print(f"Skipping block due to error: {e}")
+            continue
+
+        for point in points:
+            lat = point.y
+            lon = point.x
+            global_x, global_y = latlon_to_pixel(lat, lon, zoomlevel)
+
+            tile_origin_x = tile_x * 256
+            tile_origin_y = tile_y * 256
+            dot_x = global_x - tile_origin_x
+            dot_y = global_y - tile_origin_y
+
+            r = 2
+            fill = (0, 0, 255, 255)
+        draw.circle((dot_x, dot_y), r, fill=fill)
+
+    tile_img = tile_img.resize((256, 256), resample=Image.LANCZOS)
 
     os.makedirs(output_folder, exist_ok=True)
     tile_path = os.path.join(output_folder, f"tile_{tile_x}_{tile_y}.png")
