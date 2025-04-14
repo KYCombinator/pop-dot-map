@@ -19,30 +19,9 @@ from PIL import Image, ImageDraw
 
 load_dotenv()
 
-def get_info():
-    URL = "https://api.census.gov/data/2020/dec/dhc"
-    PARAMS = {
-        "get": "NAME,H1_001N,GEO_ID",
-        "for": "block:*",
-        "in": "state:21 county:111",
-        "key": os.getenv("CENSUS_API_KEY")
-    }
+def get_info(csv_file):
 
-    year = "2020_"
-    census = "census_year.csv"
-
-    response = requests.get(url= URL, params= PARAMS)
-    match response.status_code:
-        case 200: 
-            data = response.json()
-            with open(year+census, 'w', newline='') as csvfile:
-                writer = csv.writer(csvfile)
-                writer.writerows(data)
-
-        case _:
-            print(f"Error: {response.status_code}, {response.text}")
-    
-    census_data = pd.read_csv(year+census)
+    census_data = pd.read_csv(csv_file)
     return census_data
 
 def generate_random_points(polygon: Polygon, num_points: int, max_attempts=5000):
@@ -118,9 +97,10 @@ def latlon_to_pixel(lat, lon, zoom):
     y = (1.0 - math.log(math.tan(math.radians(lat)) + (1 / math.cos(math.radians(lat)))) / math.pi) / 2.0 * n * 256
     return x, y
 
-def generate_tile(merged_gdf, zoomlevel, tile_x, tile_y, output_folder="2020_Census_Year"):
+def generate_tile(merged_gdf, zoomlevel, tile_x, tile_y, output_folder="2020_Tiles/"):
     tile_img = Image.new("RGBA", (256, 256), (255, 255, 255, 0))
     draw = ImageDraw.Draw(tile_img)
+    # has_dots = False # new
 
     tile_bounds = mercantile.bounds(tile_x, tile_y, zoomlevel)
 
@@ -133,7 +113,7 @@ def generate_tile(merged_gdf, zoomlevel, tile_x, tile_y, output_folder="2020_Cen
 
     for _, row in filtered_df.iterrows():
         pop = row['H1_001N']
-        if pop <= 0:
+        if pop >= 0: # previously reversed
             continue
 
         geom = row['geometry']
@@ -142,6 +122,7 @@ def generate_tile(merged_gdf, zoomlevel, tile_x, tile_y, output_folder="2020_Cen
 
         try:
             points = generate_random_points(geom, pop)
+                
         except Exception as e:
             print(f"Skipping block due to error: {e}")
             continue
@@ -157,21 +138,36 @@ def generate_tile(merged_gdf, zoomlevel, tile_x, tile_y, output_folder="2020_Cen
             dot_y = global_y - tile_origin_y
 
             r = 2
-            fill = (116, 212, 255, 255)
-        draw.circle((dot_x, dot_y), r, fill=fill)
+            fill = (198, 0, 92, 255)
+            draw.circle((dot_x, dot_y), r, fill=fill)
 
+            # has_dots = True
+    
+    # if has_dots:
     tile_img = tile_img.resize((256, 256), resample=Image.LANCZOS)
 
     os.makedirs(output_folder, exist_ok=True)
     tile_path = os.path.join(output_folder, f"tile_{tile_x}_{tile_y}.png")
     tile_img.save(tile_path)
-    print(f"Saved {tile_path}")
+    # print(f"Saved {tile_path}")
+    upload_tile_to_s3(tile_path, tile_x, tile_y)
+    # else:
+        # print(f"Skipped empty tile {tile_x}, {tile_y}")
 
+def upload_tile_to_s3(tile_path, tile_x, tile_y):
+    BUCKET_NAME = "censusawsbucket"
+    s3 = boto3.client("s3")
 
+    with open(tile_path, "rb") as tile_file:
+        tile_key = f"2020_tiles/tiles_{tile_x}_{tile_y}.png"
+
+        #upload to s3
+        s3.upload_fileobj(tile_file, BUCKET_NAME, tile_key)
+        # print(f"Uploaded tile {tile_key} to S3")
 
 
 def main():
-    ky_data = get_info()
+    ky_data = get_info("/Users/sydneyporter/Desktop/pop-dot-map/2020_Census_Year/029.csv")
     merged_gdf = connecting_to_s3(ky_data)
     start_generation(merged_gdf)
 main()
