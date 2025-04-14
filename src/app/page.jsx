@@ -8,8 +8,9 @@ import Slider from "@mui/material/Slider";
 export default function Home() {
   const googleAPIKey = process.env.NEXT_PUBLIC_GOOGLE_API_KEY;
 
-  const [toggleOverlay, setToggleOverlay] = useState(() => () => {});
+  // const [toggleOverlay, setToggleOverlay] = useState(() => () => {});
   const [data, setData] = useState({});
+  const [dataLoaded, setDataLoaded] = useState(false);
 
   // makes api call to get image urls and store into "data" variable
   const fetchS3Images = async () => {
@@ -17,6 +18,7 @@ export default function Home() {
       const res = await fetch("/api/get-urls");
       const datajson = await res.json();
       setData(datajson);
+      setDataLoaded(true);
     } catch (err) {
       console.error("Error: ", err);
     }
@@ -35,26 +37,28 @@ export default function Home() {
 
       <div className="flex flex-grow w-full">
         <div className="w-4/5 h-full rounded-3xl overflow-hidden">
-          <APIProvider apiKey={googleAPIKey}>
-            <Map
-              defaultZoom={12}
-              defaultCenter={{ lat: 38.2469, lng: -85.7664 }}
-              // onCameraChanged={(ev) =>
-              //   console.log(
-              //     "Camera changed:",
-              //     ev.detail.center,
-              //     "Zoom:",
-              //     ev.detail.zoom
-              //   )
-              // }
-            />
-            <OverlayMap setToggleOverlay={setToggleOverlay} />
-          </APIProvider>
+          {dataLoaded && (
+            <APIProvider apiKey={googleAPIKey}>
+              <Map
+                defaultZoom={12}
+                defaultCenter={{ lat: 38.2469, lng: -85.7664 }}
+                // onCameraChanged={(ev) =>
+                //   console.log(
+                //     "Camera changed:",
+                //     ev.detail.center,
+                //     "Zoom:",
+                //     ev.detail.zoom
+                //   )
+                // }
+              />
+              <OverlayMap data={data} />
+            </APIProvider>
+          )}
         </div>
 
         <div className="w-1/5 h-full bg-zinc-700 rounded-3xl p-8">
           <div className="bg-zinc-600 rounded-3xl h-full flex flex-col items-center p-8 justify-evenly">
-            <OverlayToggleButton toggleOverlay={toggleOverlay} />
+            {/* <OverlayToggleButton toggleOverlay={toggleOverlay} /> */}
             <SliderBar data={data} />
           </div>
         </div>
@@ -63,49 +67,64 @@ export default function Home() {
   );
 }
 
-function OverlayMap({ setToggleOverlay }) {
+function OverlayMap({ data }) {
   const map = useMap();
   const overlayImgRef = useRef(null);
+  const urls = data["2020_Census_Year"];
 
   useEffect(() => {
     if (!map) return;
 
-    const imageBounds = {
-      north: 38.28507,
-      south: 38.21274,
-      west: -85.848,
-      east: -85.67,
-    };
+    console.log(urls);
+
+    var imageBounds = calcBounds(1073, 1578);
+    console.log(imageBounds);
+
+    // const imageBounds = {
+    //   north: 38.28507,
+    //   south: 38.21274,
+    //   west: -85.848,
+    //   east: -85.67,
+    // };
 
     // temp, just so I could make sure url worked
     overlayImgRef.current = new google.maps.GroundOverlay(
-      "https://censusawsbucket.s3.us-east-2.amazonaws.com/2020_Census_Year/tile_1092_1576.png",
+      "https://censusawsbucket.s3.us-east-2.amazonaws.com/tiles/tiles_1073_1578.png",
       imageBounds
     );
 
     overlayImgRef.current.setMap(map);
 
-    setToggleOverlay(() => () => {
-      if (overlayImgRef.current) {
-        const currentMap = overlayImgRef.current.getMap();
-        overlayImgRef.current.setMap(currentMap ? null : map);
-      }
-    });
-  }, [map, setToggleOverlay]);
+    imageBounds = calcBounds(1073, 1579);
+
+    overlayImgRef.current = new google.maps.GroundOverlay(
+      "https://censusawsbucket.s3.us-east-2.amazonaws.com/tiles/tiles_1073_1579.png",
+      imageBounds
+    );
+
+    overlayImgRef.current.setMap(map);
+
+    // setToggleOverlay(() => () => {
+    //   if (overlayImgRef.current) {
+    //     const currentMap = overlayImgRef.current.getMap();
+    //     overlayImgRef.current.setMap(currentMap ? null : map);
+    //   }
+    // });
+  }, [map]);
 
   return null;
 }
 
-function OverlayToggleButton({ toggleOverlay }) {
-  return (
-    <button
-      className="bg-purple-600 hover:bg-purple-800 text-zinc-200 font-bold py-2 px-4 rounded"
-      onClick={toggleOverlay}
-    >
-      Toggle Overlay
-    </button>
-  );
-}
+// function OverlayToggleButton({ toggleOverlay }) {
+//   return (
+//     <button
+//       className="bg-purple-600 hover:bg-purple-800 text-zinc-200 font-bold py-2 px-4 rounded"
+//       onClick={toggleOverlay}
+//     >
+//       Toggle Overlay
+//     </button>
+//   );
+// }
 
 const marks = [
   {
@@ -147,7 +166,6 @@ function SliderBar({ data }) {
 
   // called when the slider has changed to a new year
   const updateSliderValue = (event) => {
-
     const newValue = Number(event.target.value);
     setSliderValue(newValue);
 
@@ -159,7 +177,6 @@ function SliderBar({ data }) {
 
   // called when a new year is chosen via slider
   const handleYear = (newYearValue) => {
-
     // accesses the relevant data for the new chosen year
     const yearFolder = `${newYearValue}_Census_Year`;
     const yearData = data[yearFolder];
@@ -203,7 +220,7 @@ function SliderBar({ data }) {
 function Title() {
   return (
     <h1 className="mb-4 text-3xl font-extrabold text-white dark:text-zinc-200 md:text-5xl lg:text-6xl">
-      <span className="text-transparent bg-clip-text bg-gradient-to-r to-violet-500 from-purple-600">
+      <span className="text-transparent bg-clip-text bg-gradient-to-r to-sky-400 from-purple-600">
         Population
       </span>{" "}
       Dot Map
