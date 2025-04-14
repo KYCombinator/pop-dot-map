@@ -66,10 +66,19 @@ def connecting_to_s3(census_data):
 
     merged_gdf = gdf.merge(census_data, left_on="GEOID20", right_on="GEO_ID", how="left")
 
-    merged_gdf = merged_gdf.to_crs(epsg=4326)
-    merged_gdf["centroid"] = merged_gdf.geometry.centroid
-    merged_gdf["latitude"] = merged_gdf["centroid"].y
-    merged_gdf["longitude"] = merged_gdf["centroid"].x
+    projected_crs = "EPSG:26916"  # UTM zone covering much of Kentucky
+
+    # Step 2: Reproject for accurate centroid calculation
+    gdf_projected = merged_gdf.to_crs(projected_crs)
+    gdf_projected["centroid"] = gdf_projected.geometry.centroid
+
+    # Step 3: Convert centroids back to WGS84 (EPSG:4326)
+    gdf_projected = gdf_projected.set_geometry("centroid")
+    gdf_projected = gdf_projected.to_crs(epsg=4326)
+
+    # Step 4: Extract latitude and longitude from centroids
+    merged_gdf["latitude"] = gdf_projected.geometry.y
+    merged_gdf["longitude"] = gdf_projected.geometry.x
 
     merged_gdf['H1_001N'] = merged_gdf['H1_001N'].fillna(0).astype(int)
 
@@ -78,7 +87,7 @@ def connecting_to_s3(census_data):
     return merged_gdf
 
 def start_generation(merged_gdf):
-    ZOOM_LEVEL = 12
+    ZOOM_LEVEL = 15
 
     for _, row in merged_gdf.iterrows():
         tile_x, tile_y = latitude_longitude_tile(row["latitude"], row["longitude"], ZOOM_LEVEL)
@@ -97,10 +106,9 @@ def latlon_to_pixel(lat, lon, zoom):
     y = (1.0 - math.log(math.tan(math.radians(lat)) + (1 / math.cos(math.radians(lat)))) / math.pi) / 2.0 * n * 256
     return x, y
 
-def generate_tile(merged_gdf, zoomlevel, tile_x, tile_y, output_folder="2020_Tiles/"):
+def generate_tile(merged_gdf, zoomlevel, tile_x, tile_y, output_folder="15_Census_Year"):
     tile_img = Image.new("RGBA", (256, 256), (255, 255, 255, 0))
     draw = ImageDraw.Draw(tile_img)
-    # has_dots = False # new
 
     tile_bounds = mercantile.bounds(tile_x, tile_y, zoomlevel)
 
@@ -113,7 +121,7 @@ def generate_tile(merged_gdf, zoomlevel, tile_x, tile_y, output_folder="2020_Til
 
     for _, row in filtered_df.iterrows():
         pop = row['H1_001N']
-        if pop >= 0: # previously reversed
+        if pop <= 0:
             continue
 
         geom = row['geometry']
@@ -122,7 +130,6 @@ def generate_tile(merged_gdf, zoomlevel, tile_x, tile_y, output_folder="2020_Til
 
         try:
             points = generate_random_points(geom, pop)
-                
         except Exception as e:
             print(f"Skipping block due to error: {e}")
             continue
@@ -138,32 +145,28 @@ def generate_tile(merged_gdf, zoomlevel, tile_x, tile_y, output_folder="2020_Til
             dot_y = global_y - tile_origin_y
 
             r = 2
-            fill = (198, 0, 92, 255)
-            draw.circle((dot_x, dot_y), r, fill=fill)
+            fill = (230, 0, 118, 255)
+        draw.circle((dot_x, dot_y), r, fill=fill)
 
-            # has_dots = True
-    
-    # if has_dots:
     tile_img = tile_img.resize((256, 256), resample=Image.LANCZOS)
 
     os.makedirs(output_folder, exist_ok=True)
     tile_path = os.path.join(output_folder, f"tile_{tile_x}_{tile_y}.png")
     tile_img.save(tile_path)
-    # print(f"Saved {tile_path}")
-    upload_tile_to_s3(tile_path, tile_x, tile_y)
-    # else:
-        # print(f"Skipped empty tile {tile_x}, {tile_y}")
+    print(f"Saved {tile_path}")
 
-def upload_tile_to_s3(tile_path, tile_x, tile_y):
+    upload_tile_to_s3(tile_path, zoomlevel, tile_x, tile_y)
+
+def upload_tile_to_s3(tile_path, zoomlevel, tile_x, tile_y):
     BUCKET_NAME = "censusawsbucket"
     s3 = boto3.client("s3")
 
     with open(tile_path, "rb") as tile_file:
-        tile_key = f"2020_tiles/tiles_{tile_x}_{tile_y}.png"
+        tile_key = f"FIF_tiles/tiles_{tile_x}_{tile_y}.png"
 
         #upload to s3
         s3.upload_fileobj(tile_file, BUCKET_NAME, tile_key)
-        # print(f"Uploaded tile {tile_key} to S3")
+        print(f"Uploaded tile {tile_key} to S3")
 
 
 def main():
