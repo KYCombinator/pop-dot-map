@@ -4,45 +4,59 @@ import React, { useEffect, useRef, useState } from "react";
 import { APIProvider, Map, useMap } from "@vis.gl/react-google-maps";
 import Box from "@mui/material/Box";
 import Slider from "@mui/material/Slider";
-import 'leaflet/dist/leaflet.css';
 
 export default function Home() {
   const googleAPIKey = process.env.NEXT_PUBLIC_GOOGLE_API_KEY;
 
   const [toggleOverlay, setToggleOverlay] = useState(() => () => {});
+  const [data, setData] = useState({});
+
+  // makes api call to get image urls and store into "data" variable
+  const fetchS3Images = async () => {
+    try {
+      const res = await fetch("/api/get-urls");
+      const datajson = await res.json();
+      setData(datajson);
+    } catch (err) {
+      console.error("Error: ", err);
+    }
+  };
+
+  // runs upon first loading website, so that it is only run once and fetches all images
+  useEffect(() => {
+    fetchS3Images();
+  }, []);
 
   return (
     <div className="flex flex-col w-screen h-screen bg-zinc-800">
-      <div className="pl-10 pt-6">
+      <div className="px-10 py-5 bg-zinc-700 w-fit rounded-3xl">
         <Title />
       </div>
 
       <div className="flex flex-grow w-full">
-        {/* <MapOverlay /> */}
         <div className="w-4/5 h-full rounded-3xl overflow-hidden">
           <APIProvider apiKey={googleAPIKey}>
             <Map
               defaultZoom={12}
               defaultCenter={{ lat: 38.2469, lng: -85.7664 }}
-              onCameraChanged={(ev) =>
-                console.log(
-                  "Camera changed:",
-                  ev.detail.center,
-                  "Zoom:",
-                  ev.detail.zoom
-                )
-              }
+              // onCameraChanged={(ev) =>
+              //   console.log(
+              //     "Camera changed:",
+              //     ev.detail.center,
+              //     "Zoom:",
+              //     ev.detail.zoom
+              //   )
+              // }
             />
             <OverlayMap setToggleOverlay={setToggleOverlay} />
           </APIProvider>
         </div>
 
-        <div className="w-1/5 h-full bg-zinc-700 rounded-3xl px-8">
-          <div className="p-10">
+        <div className="w-1/5 h-full bg-zinc-700 rounded-3xl p-8">
+          <div className="bg-zinc-600 rounded-3xl h-full flex flex-col items-center p-8 justify-evenly">
             <OverlayToggleButton toggleOverlay={toggleOverlay} />
+            <SliderBar data={data} />
           </div>
-
-          <SliderBar />
         </div>
       </div>
     </div>
@@ -63,8 +77,9 @@ function OverlayMap({ setToggleOverlay }) {
       east: -85.67,
     };
 
+    // temp, just so I could make sure url worked
     overlayImgRef.current = new google.maps.GroundOverlay(
-      "/images/louisville1865.jpg",
+      "https://censusawsbucket.s3.us-east-2.amazonaws.com/2020_Census_Year/tile_1092_1576.png",
       imageBounds
     );
 
@@ -84,7 +99,7 @@ function OverlayMap({ setToggleOverlay }) {
 function OverlayToggleButton({ toggleOverlay }) {
   return (
     <button
-      className="bg-purple-600 hover:bg-purple-800 text-white font-bold py-2 px-4 rounded"
+      className="bg-purple-600 hover:bg-purple-800 text-zinc-200 font-bold py-2 px-4 rounded"
       onClick={toggleOverlay}
     >
       Toggle Overlay
@@ -127,22 +142,33 @@ const marks = [
   },
 ];
 
-function SliderBar() {
+function SliderBar({ data }) {
   const [sliderValue, setSliderValue] = useState(1);
 
-  const handleSlider = (event) => {
+  // called when the slider has changed to a new year
+  const updateSliderValue = (event) => {
+
     const newValue = Number(event.target.value);
     setSliderValue(newValue);
 
-    const mark = marks.find((mark) => mark.value === newValue);
-    handleYear(mark.label);
+    // finds mark with the associated value and sets the "newYear" to the label of that mark
+    const newMark = marks.find((newMark) => newMark.value === newValue);
+    const newYear = newMark.label;
+    handleYear(newYear);
   };
 
+  // called when a new year is chosen via slider
   const handleYear = (newYearValue) => {
-    console.log("New year is: ", newYearValue);
-    // will call function that gets folder of corresponding year in S3 and loops through each picture
-    // placing each image on the map
-    // use a loading indicator of some sort? show a spinner or something while the
+
+    // accesses the relevant data for the new chosen year
+    const yearFolder = `${newYearValue}_Census_Year`;
+    const yearData = data[yearFolder];
+
+    // logs array of urls for associated year, just for testing currently
+    console.log(`Data for ${newYearValue}: `, yearData);
+
+    // use google.maps.ImageMapType ?
+    // use a loading indicator of some sort if slow? show a spinner or something while the
     // images are placed on the map?
   };
 
@@ -155,13 +181,12 @@ function SliderBar() {
           step={null}
           valueLabelDisplay="off"
           marks={marks}
-          color="secondary"
-          onChange={handleSlider}
+          onChange={updateSliderValue}
           sx={{
             width: 15,
-            color: "#7e22ce",
+            color: "#9333ea",
             "& .MuiSlider-markLabel": {
-              color: "white",
+              color: "#e5e7eb",
               fontSize: "1.4rem",
             },
             "& .MuiSlider-thumb": {
@@ -174,10 +199,11 @@ function SliderBar() {
   );
 }
 
+// change gradient color to match color of dots to tie them in?
 function Title() {
   return (
-    <h1 className="mb-4 text-3xl font-extrabold text-gray-900 dark:text-white md:text-5xl lg:text-6xl">
-      <span className="text-transparent bg-clip-text bg-gradient-to-r to-fuchsia-600 from-purple-600">
+    <h1 className="mb-4 text-3xl font-extrabold text-white dark:text-zinc-200 md:text-5xl lg:text-6xl">
+      <span className="text-transparent bg-clip-text bg-gradient-to-r to-violet-500 from-purple-600">
         Population
       </span>{" "}
       Dot Map
@@ -185,64 +211,13 @@ function Title() {
   );
 }
 
-// function MapOverlay() {
-
-// //   Tile numbers to lon./lat.
-
-// //    n = 2 ^ zoom
-// //    lon_deg = xtile / n * 360.0 - 180.0
-// //    lat_rad = arctan(sinh(π * (1 - 2 * ytile / n)))
-// //    lat_deg = lat_rad * 180.0 / π
-// //    This code returns the coordinate of the _upper left_ (northwest-most)-point of the tile.
-
-//   var long = 1092 / (2^12) * 360 -180;
-//   var lat = 180 / Math.PI * Math.atan(Math.sinh(1576 / 2^12 * Math.PI));
-
-//   useEffect(() => {
-
-//     let map;
-
-//     import('leaflet').then((L) => {
-//       map = L.map('map', {
-//         center: [38.67, -85.18],
-//         zoom: 12,
-//         minZoom: 12,
-//         maxZoom: 19
-
-//       });
-
-//       L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-//         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-//         maxZoom: 19,
-//       }).addTo(map);
-
-//       var imageUrl = "images/0_tile_12_1092_1576.png",
-//           imageBounds = [
-//             [38.67, -85.18], // South west corner
-//             [38.69, -85.16]  // north east corner
-//           ];
-
-//       L.imageOverlay(imageUrl, imageBounds).addTo(map);
-
-//     });
-
-//   }, []);
-
-//   return (
-//     <div id="map" className="w-4/5 h-full rounded-3xl overflow-hidden">
-
-//     </div>
-//   );
-// }
-
+// take in an x and y coordinate and returns an object with associated NSEW boundaries
 function calcBounds(x, y) {
   const zoom = 12;
   const n = Math.pow(2, zoom);
 
-  const North =
-    Math.atan(Math.sinh(Math.PI * (1 - (2 * y) / n))) * (180 / Math.PI);
-  const South =
-    Math.atan(Math.sinh(Math.PI * (1 - (2 * (y + 1)) / n))) * (180 / Math.PI);
+  const North = Math.atan(Math.sinh(Math.PI * (1 - (2 * y) / n))) * (180 / Math.PI);
+  const South = Math.atan(Math.sinh(Math.PI * (1 - (2 * (y + 1)) / n))) * (180 / Math.PI);
   const East = ((x + 1) / n) * 360 - 180;
   const West = (x / n) * 360 - 180;
 
@@ -254,15 +229,20 @@ function calcBounds(x, y) {
   };
 }
 
+// take in a url string and returns an object that contains the x and y values contained in the string
 function getCoords(urlString) {
   const re = /tile_(\d+)_(\d+).png/;
-  var match = urlString.match(re);
+  const match = urlString.match(re);
 
-  var xValue = parseInt(match[1]);
-  var yValue = parseInt(match[2]);
+  const xValue = parseInt(match[1]);
+  const yValue = parseInt(match[2]);
 
   return { x: xValue, y: yValue };
 }
 
+
+// things to add?
 // add something that gives the user more information about what they are looking at and why
 // it was created, etc.
+// add option to overlay the old image from 1800s or something - for fun
+// customize layout so it still looks good on mobile/smaller screens?
