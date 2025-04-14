@@ -69,40 +69,30 @@ export default function Home() {
 
 function OverlayMap({ data }) {
   const map = useMap();
-  const overlayImgRef = useRef(null);
-  const urls = data["2020_Census_Year"];
+  const overlays = useRef([]);
+  const urls = data["15_tiles"];
+
+  console.log(data);
 
   useEffect(() => {
     if (!map) return;
 
-    console.log(urls);
+    overlays.current = [];
 
-    var imageBounds = calcBounds(1073, 1578);
-    console.log(imageBounds);
+    urls.forEach((tile) => {
+      // console.log(tile.url);
+      const tileURL = tile.url;
 
-    // const imageBounds = {
-    //   north: 38.28507,
-    //   south: 38.21274,
-    //   west: -85.848,
-    //   east: -85.67,
-    // };
+      const xyVals = getCoords(tileURL);
+      // console.log(xyVals);
 
-    // temp, just so I could make sure url worked
-    overlayImgRef.current = new google.maps.GroundOverlay(
-      "https://censusawsbucket.s3.us-east-2.amazonaws.com/tiles/tiles_1073_1578.png",
-      imageBounds
-    );
+      const bounds = calcBounds(xyVals.x, xyVals.y);
+      // console.log(bounds);
 
-    overlayImgRef.current.setMap(map);
-
-    imageBounds = calcBounds(1073, 1579);
-
-    overlayImgRef.current = new google.maps.GroundOverlay(
-      "https://censusawsbucket.s3.us-east-2.amazonaws.com/tiles/tiles_1073_1579.png",
-      imageBounds
-    );
-
-    overlayImgRef.current.setMap(map);
+      const overlay = new google.maps.GroundOverlay(tileURL, bounds);
+      overlay.setMap(map);
+      overlays.current.push(overlay);
+    });
 
     // setToggleOverlay(() => () => {
     //   if (overlayImgRef.current) {
@@ -110,7 +100,7 @@ function OverlayMap({ data }) {
     //     overlayImgRef.current.setMap(currentMap ? null : map);
     //   }
     // });
-  }, [map]);
+  }, [map, JSON.stringify(urls)]);
 
   return null;
 }
@@ -184,7 +174,6 @@ function SliderBar({ data }) {
     // logs array of urls for associated year, just for testing currently
     console.log(`Data for ${newYearValue}: `, yearData);
 
-    // use google.maps.ImageMapType ?
     // use a loading indicator of some sort if slow? show a spinner or something while the
     // images are placed on the map?
   };
@@ -230,11 +219,13 @@ function Title() {
 
 // take in an x and y coordinate and returns an object with associated NSEW boundaries
 function calcBounds(x, y) {
-  const zoom = 12;
+  const zoom = 15;
   const n = Math.pow(2, zoom);
 
-  const North = Math.atan(Math.sinh(Math.PI * (1 - (2 * y) / n))) * (180 / Math.PI);
-  const South = Math.atan(Math.sinh(Math.PI * (1 - (2 * (y + 1)) / n))) * (180 / Math.PI);
+  const North =
+    Math.atan(Math.sinh(Math.PI * (1 - (2 * y) / n))) * (180 / Math.PI);
+  const South =
+    Math.atan(Math.sinh(Math.PI * (1 - (2 * (y + 1)) / n))) * (180 / Math.PI);
   const East = ((x + 1) / n) * 360 - 180;
   const West = (x / n) * 360 - 180;
 
@@ -248,7 +239,7 @@ function calcBounds(x, y) {
 
 // take in a url string and returns an object that contains the x and y values contained in the string
 function getCoords(urlString) {
-  const re = /tile_(\d+)_(\d+).png/;
+  const re = /tiles_(\d+)_(\d+).png/;
   const match = urlString.match(re);
 
   const xValue = parseInt(match[1]);
