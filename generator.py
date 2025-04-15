@@ -43,20 +43,30 @@ def connecting_to_s3(census_data):
     census_data["GEO_ID"] = census_data["GEO_ID"].str.replace("1000000US", "", regex=False)
 
     BUCKET_NAME = "censusawsbucket"
-    FILE_KEY = "tl_2020_21_tabblock20.zip"
+    FILE_KEY = "tl_2010_21_tabblock10.zip"
     s3 = boto3.client("s3")
     obj = s3.get_object(Bucket=BUCKET_NAME, Key=FILE_KEY)
     zip_data = BytesIO(obj['Body'].read())
+
     with tempfile.TemporaryDirectory() as tempdir:
         with zipfile.ZipFile(zip_data, 'r') as zip_ref:
             zip_ref.extractall(tempdir)
 
-        shapefile_path = "tl_2020_21_tabblock20/tl_2020_21_tabblock20.shp"
-        gdf = gpd.read_file(os.path.join(tempdir, shapefile_path))
+        shapefile_path = None
+        for root, dirs, files in os.walk(tempdir):
+            for file in files:
+                if file.endswith(".shp"):
+                    shapefile_path = os.path.join(root, file)
+                    break
 
-    gdf = gdf[gdf["COUNTYFP20"] == "111"]  # 179 = Nelson County, KY
+        if shapefile_path is None:
+            raise FileNotFoundError("No .shp file found in extracted ZIP archive.")
 
-    merged_gdf = gdf.merge(census_data, left_on="GEOID20", right_on="GEO_ID", how="left")
+        gdf = gpd.read_file(shapefile_path)
+
+    gdf = gdf[gdf["COUNTYFP10"] == "111"]  #Jefferson
+
+    merged_gdf = gdf.merge(census_data, left_on="GEOID10", right_on="GEO_ID", how="left")
 
     # Reproject for centroid
     projected_crs = "EPSG:26916"
@@ -66,9 +76,9 @@ def connecting_to_s3(census_data):
     gdf_projected = gdf_projected.set_geometry("centroid").to_crs(epsg=4326)
     merged_gdf["latitude"] = gdf_projected.geometry.y
     merged_gdf["longitude"] = gdf_projected.geometry.x
-    merged_gdf['H1_001N'] = merged_gdf['H1_001N'].fillna(0).astype(int)
+    merged_gdf['P001001'] = merged_gdf['P001001'].fillna(0).astype(int)
 
-    print(merged_gdf[["GEOID20", "POP20", "latitude", "longitude"]].head(20))
+    print(merged_gdf[["GEOID10", "latitude", "longitude"]].head(20))
 
     return merged_gdf
 
@@ -90,7 +100,7 @@ def latlon_to_pixel(lat, lon, zoom):
     y = (1.0 - math.log(math.tan(math.radians(lat)) + (1 / math.cos(math.radians(lat)))) / math.pi) / 2.0 * n * 256
     return x, y
 
-def generate_tile(merged_gdf, zoomlevel, tile_x, tile_y, output_folder="okay_Again"):
+def generate_tile(merged_gdf, zoomlevel, tile_x, tile_y, output_folder="2000_Tiles"):
     tile_img = Image.new("RGBA", (256, 256), (255, 255, 255, 0))
     draw = ImageDraw.Draw(tile_img)
 
@@ -103,10 +113,10 @@ def generate_tile(merged_gdf, zoomlevel, tile_x, tile_y, output_folder="okay_Aga
     ]
 
     for _, row in filtered_df.iterrows():
-        lat, lon, pop = row['latitude'], row['longitude'], row['H1_001N']
+        lat, lon, pop = row['latitude'], row['longitude'], row['P001001']
         dot_x, dot_y = latlon_to_pixel(lat, lon, zoomlevel)
 
-        pop = row['H1_001N']
+        pop = row['P001001']
         if pop <= 0:
             continue
 
@@ -142,7 +152,7 @@ def generate_tile(merged_gdf, zoomlevel, tile_x, tile_y, output_folder="okay_Aga
     print(f"Saved {tile_path}")
 
 def main():
-    ky_data = get_info("/Users/sydneyporter/Desktop/pop-dot-map/2020_Census_Year/111.csv")
+    ky_data = get_info("/Users/sydneyporter/Desktop/pop-dot-map/2000_Census_Year/111.csv")
     merged_gdf = connecting_to_s3(ky_data)
     start_generation(merged_gdf)
 main()

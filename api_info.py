@@ -13,11 +13,11 @@ os.makedirs(output_folder, exist_ok=True)
 load_dotenv()
 
 for county_code in COUNTY_CODES:
-    URL = "https://api.census.gov/data/2000/sf1"
+    URL = "https://api.census.gov/data/2000/dec/sf1"
     PARAMS = {
-        "get": "NAME,P001001",  # Total population
-        "for": "block group:*",
-        "in": f"state:21 county:{county_code} tract:*",  # Use your county_code variable here
+        "get": "NAME,P001001,GEO_ID",  # Total population
+        "for": "block:*",
+        "in": f"state:21 county:{county_code}",
         "key": os.getenv("CENSUS_API_KEY")
     }
 
