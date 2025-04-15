@@ -22,21 +22,24 @@ const getAllS3Files = async (client, s3Opts) => {
 // groups urls based on the first part of the key, in form: "{year}_Census_Year". will create url for 
 // each item with that year's prefix
 const groupUrlsByYear = (urlsGroupedByYear, file) => {
-  const fileKey = file.Key
+  const fileKey = file.Key;
 
   // skip folders
-  if (fileKey.endsWith('/')) return;
+  if (fileKey.endsWith("/")) return;
 
-  const keySplit = fileKey.split('/');
+  // skips empty images
+  if (file.Size < 855) return;
+
+  const keySplit = fileKey.split("/");
   const folderName = keySplit[0];
-  
+
   // if we dont already have array for that year, make an empty one
   if (!urlsGroupedByYear[folderName]) {
     urlsGroupedByYear[folderName] = [];
   }
 
-  urlsGroupedByYear[folderName].push({  
-    url: `https://${bucket}.s3.${s3Config.region}.amazonaws.com/${folderName}/${keySplit[1]}`
+  urlsGroupedByYear[folderName].push({
+    url: `https://${bucket}.s3.${s3Config.region}.amazonaws.com/${folderName}/${keySplit[1]}`,
   });
 };
 
@@ -57,7 +60,7 @@ export async function GET() {
       status: 200
     });
   } catch (err) {
-    console.error('Error getting files from S3! : ', err);
+    console.error("Error getting images from S3! : ", err);
     return new Response(JSON.stringify({ error: 'Failed to get image urls' }), {
       status: 500,
     });
