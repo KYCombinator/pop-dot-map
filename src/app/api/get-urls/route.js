@@ -60,7 +60,7 @@ export async function GET() {
       status: 200
     });
   } catch (err) {
-    console.error('Error getting files from S3! : ', err);
+    console.error("Error getting images from S3! : ", err);
     return new Response(JSON.stringify({ error: 'Failed to get image urls' }), {
       status: 500,
     });
