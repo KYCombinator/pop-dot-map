@@ -14,35 +14,13 @@ from io import BytesIO
 import zipfile
 from dotenv import load_dotenv
 import tempfile
-
 from PIL import Image, ImageDraw
-
 load_dotenv()
 
-def get_info():
-    URL = "https://api.census.gov/data/2020/dec/dhc"
-    PARAMS = {
-        "get": "NAME,H1_001N,GEO_ID",
-        "for": "block:*",
-        "in": "state:21 county:111",
-        "key": os.getenv("CENSUS_API_KEY")
-    }
 
-    year = "2020_"
-    census = "census_year.csv"
+def get_info(csv_file):
 
-    response = requests.get(url= URL, params= PARAMS)
-    match response.status_code:
-        case 200: 
-            data = response.json()
-            with open(year+census, 'w', newline='') as csvfile:
-                writer = csv.writer(csvfile)
-                writer.writerows(data)
-
-        case _:
-            print(f"Error: {response.status_code}, {response.text}")
-    
-    census_data = pd.read_csv(year+census)
+    census_data = pd.read_csv(csv_file)
     return census_data
 
 def generate_random_points(polygon: Polygon, num_points: int, max_attempts=5000):
@@ -66,32 +44,28 @@ def connecting_to_s3(census_data):
 
     BUCKET_NAME = "censusawsbucket"
     FILE_KEY = "tl_2020_21_tabblock20.zip"
-
     s3 = boto3.client("s3")
-
     obj = s3.get_object(Bucket=BUCKET_NAME, Key=FILE_KEY)
     zip_data = BytesIO(obj['Body'].read())
-
     with tempfile.TemporaryDirectory() as tempdir:
         with zipfile.ZipFile(zip_data, 'r') as zip_ref:
-            zip_ref.printdir()
-
-            shapefile_path = "tl_2020_21_tabblock20/tl_2020_21_tabblock20"
-            
             zip_ref.extractall(tempdir)
 
-        shapefile_shp = os.path.join(tempdir, f"{shapefile_path}.shp")
-        
-        gdf = gpd.read_file(shapefile_shp)
-    
+        shapefile_path = "tl_2020_21_tabblock20/tl_2020_21_tabblock20.shp"
+        gdf = gpd.read_file(os.path.join(tempdir, shapefile_path))
+
+    gdf = gdf[gdf["COUNTYFP20"] == "111"]  # 179 = Nelson County, KY
 
     merged_gdf = gdf.merge(census_data, left_on="GEOID20", right_on="GEO_ID", how="left")
 
-    merged_gdf = merged_gdf.to_crs(epsg=4326)
-    merged_gdf["centroid"] = merged_gdf.geometry.centroid
-    merged_gdf["latitude"] = merged_gdf["centroid"].y
-    merged_gdf["longitude"] = merged_gdf["centroid"].x
+    # Reproject for centroid
+    projected_crs = "EPSG:26916"
+    gdf_projected = merged_gdf.to_crs(projected_crs)
+    gdf_projected["centroid"] = gdf_projected.geometry.centroid
 
+    gdf_projected = gdf_projected.set_geometry("centroid").to_crs(epsg=4326)
+    merged_gdf["latitude"] = gdf_projected.geometry.y
+    merged_gdf["longitude"] = gdf_projected.geometry.x
     merged_gdf['H1_001N'] = merged_gdf['H1_001N'].fillna(0).astype(int)
 
     print(merged_gdf[["GEOID20", "POP20", "latitude", "longitude"]].head(20))
@@ -99,12 +73,10 @@ def connecting_to_s3(census_data):
     return merged_gdf
 
 def start_generation(merged_gdf):
-    ZOOM_LEVEL = 12
-
+    ZOOM_LEVEL = 15
     for _, row in merged_gdf.iterrows():
         tile_x, tile_y = latitude_longitude_tile(row["latitude"], row["longitude"], ZOOM_LEVEL)
         generate_tile(merged_gdf, ZOOM_LEVEL, tile_x, tile_y)
-
 
 def latitude_longitude_tile(lat, lon, zoomlevel):
     n = 2.0** zoomlevel
@@ -118,12 +90,11 @@ def latlon_to_pixel(lat, lon, zoom):
     y = (1.0 - math.log(math.tan(math.radians(lat)) + (1 / math.cos(math.radians(lat)))) / math.pi) / 2.0 * n * 256
     return x, y
 
-def generate_tile(merged_gdf, zoomlevel, tile_x, tile_y, output_folder="2020_Census_Year"):
+def generate_tile(merged_gdf, zoomlevel, tile_x, tile_y, output_folder="okay_Again"):
     tile_img = Image.new("RGBA", (256, 256), (255, 255, 255, 0))
     draw = ImageDraw.Draw(tile_img)
 
     tile_bounds = mercantile.bounds(tile_x, tile_y, zoomlevel)
-
     filtered_df = merged_gdf[
         (merged_gdf["longitude"] >= tile_bounds.west) &
         (merged_gdf["longitude"] <= tile_bounds.east) &
@@ -132,6 +103,9 @@ def generate_tile(merged_gdf, zoomlevel, tile_x, tile_y, output_folder="2020_Cen
     ]
 
     for _, row in filtered_df.iterrows():
+        lat, lon, pop = row['latitude'], row['longitude'], row['H1_001N']
+        dot_x, dot_y = latlon_to_pixel(lat, lon, zoomlevel)
+
         pop = row['H1_001N']
         if pop <= 0:
             continue
@@ -157,8 +131,8 @@ def generate_tile(merged_gdf, zoomlevel, tile_x, tile_y, output_folder="2020_Cen
             dot_y = global_y - tile_origin_y
 
             r = 2
-            fill = (116, 212, 255, 255)
-        draw.circle((dot_x, dot_y), r, fill=fill)
+            fill = (230, 0, 118, 255)      
+            draw.circle((dot_x, dot_y), r, fill=fill)
 
     tile_img = tile_img.resize((256, 256), resample=Image.LANCZOS)
 
@@ -167,11 +141,8 @@ def generate_tile(merged_gdf, zoomlevel, tile_x, tile_y, output_folder="2020_Cen
     tile_img.save(tile_path)
     print(f"Saved {tile_path}")
 
-
-
-
 def main():
-    ky_data = get_info()
+    ky_data = get_info("/Users/sydneyporter/Desktop/pop-dot-map/2020_Census_Year/111.csv")
     merged_gdf = connecting_to_s3(ky_data)
     start_generation(merged_gdf)
 main()
