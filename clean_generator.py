@@ -68,15 +68,12 @@ def connecting_to_s3(census_data):
 
     projected_crs = "EPSG:26916"  # UTM zone covering much of Kentucky
 
-    # Step 2: Reproject for accurate centroid calculation
     gdf_projected = merged_gdf.to_crs(projected_crs)
     gdf_projected["centroid"] = gdf_projected.geometry.centroid
 
-    # Step 3: Convert centroids back to WGS84 (EPSG:4326)
     gdf_projected = gdf_projected.set_geometry("centroid")
     gdf_projected = gdf_projected.to_crs(epsg=4326)
 
-    # Step 4: Extract latitude and longitude from centroids
     merged_gdf["latitude"] = gdf_projected.geometry.y
     merged_gdf["longitude"] = gdf_projected.geometry.x
 
