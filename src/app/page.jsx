@@ -50,7 +50,7 @@ export default function Home() {
           <Title />
         </div>
       </div>
-      
+      <InfoDropdown /> 
 
       <div className="flex flex-grow w-full">
         <div className="w-full h-full rounded-3xl overflow-hidden">
@@ -88,30 +88,22 @@ function MapComponent({ data, newYear }) {
   // console.log(newYear, typeof newYear);
 
   useEffect(() => {
-    if (!map) return;
-
-    // clear old year's overlays
+    if (!map || !Array.isArray(data)) return;
+  
     overlays.current.forEach((overlay) => overlay.setMap(null));
     overlays.current = [];
-
-    // overlay each image/tile
+  
     data.forEach((tile) => {
-      // console.log(tile.url);
       const tileURL = tile.url;
-
       const xyVals = getCoords(tileURL);
-      // console.log(xyVals);
-
       const bounds = calcBounds(xyVals.x, xyVals.y);
-      // console.log(bounds);
-
       const overlay = new google.maps.GroundOverlay(tileURL, bounds);
       overlay.setMap(map);
       overlays.current.push(overlay);
     });
-
-
+  
   }, [map, data, newYear]);
+  
 
   return null;
 }
@@ -215,6 +207,55 @@ function calcBounds(x, y) {
     west: West,
   };
 }
+
+function InfoDropdown() {
+  const [isOpen, setIsOpen] = useState(false);
+
+  return (
+    <div className="bg-zinc-700 text-white rounded-xl shadow-md p-4 w-fit absolute top-6 right-6 z-50">
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-full text-left text-lg font-semibold text-purple-300 hover:text-purple-200 transition"
+      >
+        {isOpen ? "▼" : "▶"} More Info
+      </button>
+
+      {isOpen && (
+        <div className="mt-3 text-sm text-zinc-200">
+          <p>
+            This website provides a <strong>"Visual Population Dot Map"</strong> overlay for Louisville and surrounding areas. 
+            The red dots represent population distribution based on census data for selected years from <strong>1950</strong> to <strong>2020</strong>.
+          </p>
+          <p className="mt-2">
+   * Please note: Data from IPUMS NHGIS is used only for the years <strong>1990</strong> and <strong>earlier</strong>.
+</p>
+
+          <p className="mt-2">
+            You can use the slider on the right to toggle between census years. Each year's population data is retrieved dynamically 
+            and displayed as map tiles over Google Maps.
+          </p>
+          <p className="mt-2">
+            This project is built with <strong>Next.js</strong>, <strong>Tailwind CSS</strong>, and <strong>Google Maps API</strong>. 
+            It serves as a tool to visually understand urban growth, migration trends, and historical data overlays.
+          </p>
+          <p className="mt-4 text-sm text-purple-300">
+        Data Source:{" "}
+      <a
+        href="https://www.nhgis.org/citation-and-use-nhgis-data"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="underline hover:text-purple-400"
+      >
+        IPUMS NHGIS - Citation and Use
+      </a>
+    </p>
+
+        </div>
+      )}
+    </div>
+  );
+}
+
 
 // extract tile x y coords from the url string
 function getCoords(urlString) {
