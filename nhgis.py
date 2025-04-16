@@ -20,10 +20,10 @@ load_dotenv()
 
 def get_info(csv_file):
 
-    census_data = pd.read_csv(csv_file)
+    census_data = pd.read_csv(csv_file, low_memory=False)
     return census_data
 
-def generate_random_points(polygon: Polygon, num_points: int, max_attempts=5000):
+def generate_random_points(polygon: Polygon, num_points: float, max_attempts=5000):
     """Generate up to `num_points` random points inside the given polygon."""
     points = []
     minx, miny, maxx, maxy = polygon.bounds
@@ -40,10 +40,10 @@ def generate_random_points(polygon: Polygon, num_points: int, max_attempts=5000)
     return points
 
 def connecting_to_s3(census_data):
-    census_data["GEO_ID"] = census_data["GEO_ID"].str.replace("1000000US", "", regex=False)
+    # census_data["GEO_ID"] = census_data["GEO_ID"].str.replace("1000000US", "", regex=False)
 
     BUCKET_NAME = "censusawsbucket"
-    FILE_KEY = "tl_2010_21_tabblock00.zip"
+    FILE_KEY = "nhgis0006_shapefile_tl2000_us_tract_1980.zip"
     s3 = boto3.client("s3")
     obj = s3.get_object(Bucket=BUCKET_NAME, Key=FILE_KEY)
     zip_data = BytesIO(obj['Body'].read())
@@ -64,18 +64,15 @@ def connecting_to_s3(census_data):
 
         gdf = gpd.read_file(shapefile_path)
 
-    gdf = gdf[gdf["COUNTYFP00"] == "111"]  #Jefferson
+    print(gdf.head())
+    print(census_data.head())
+    
 
-    print("Columns in shapefile:", gdf.columns)
+    gdf = gdf[gdf["NHGISCTY"] == "0730"]
 
-    gdf["GEOID"] = ( #This had to be done with shapefiles for 2000
-    gdf["STATEFP00"] +
-    gdf["COUNTYFP00"] +
-    gdf["TRACTCE00"] +
-    gdf["BLOCKCE00"]
-)
+    merged_gdf = gdf.merge(census_data, left_on="GISJOIN", right_on="GISJOIN", how="left")
 
-    merged_gdf = gdf.merge(census_data, left_on="GEOID", right_on="GEO_ID", how="left")
+    print(merged_gdf.head(10))
 
     # Reproject for centroid
     projected_crs = "EPSG:26916"
@@ -85,10 +82,11 @@ def connecting_to_s3(census_data):
     gdf_projected = gdf_projected.set_geometry("centroid").to_crs(epsg=4326)
     merged_gdf["latitude"] = gdf_projected.geometry.y
     merged_gdf["longitude"] = gdf_projected.geometry.x
-    merged_gdf['P001001'] = merged_gdf['P001001'].fillna(0).astype(int)
+    merged_gdf['C7L001'] = merged_gdf['C7L001'].fillna(0).astype(int)
 
-    print(merged_gdf[["GEOID", "latitude", "longitude"]].head(20))
+    print(merged_gdf[["GISJOIN","C7L001", "latitude", "longitude"]].head(20))
 
+    # print("Non-zero population blocks:", (merged_gdf['C7L001'] > 0).sum())
     return merged_gdf
 
 def start_generation(merged_gdf):
@@ -104,12 +102,17 @@ def latitude_longitude_tile(lat, lon, zoomlevel):
     return int(xtile), int(ytile)
 
 def latlon_to_pixel(lat, lon, zoom):
+    if lat is None or lon is None:
+        raise ValueError(f"Invalid lat/lon: {lat}, {lon}")
+    if lat <= -90 or lat >= 90:
+        raise ValueError(f"Latitude out of bounds: {lat}")
+
     n = 2.0 ** zoom
     x = (lon + 180.0) / 360.0 * n * 256
     y = (1.0 - math.log(math.tan(math.radians(lat)) + (1 / math.cos(math.radians(lat)))) / math.pi) / 2.0 * n * 256
     return x, y
 
-def generate_tile(merged_gdf, zoomlevel, tile_x, tile_y, output_folder="2000_Tiles"):
+def generate_tile(merged_gdf, zoomlevel, tile_x, tile_y, output_folder="1980_Tiles"):
     tile_img = Image.new("RGBA", (256, 256), (255, 255, 255, 0))
     draw = ImageDraw.Draw(tile_img)
 
@@ -122,10 +125,10 @@ def generate_tile(merged_gdf, zoomlevel, tile_x, tile_y, output_folder="2000_Til
     ]
 
     for _, row in filtered_df.iterrows():
-        lat, lon, pop = row['latitude'], row['longitude'], row['P001001']
+        lat, lon, pop = row['latitude'], row['longitude'], row['C7L001']
         dot_x, dot_y = latlon_to_pixel(lat, lon, zoomlevel)
 
-        pop = row['P001001']
+        pop = row['C7L001']
         if pop <= 0:
             continue
 
@@ -133,8 +136,10 @@ def generate_tile(merged_gdf, zoomlevel, tile_x, tile_y, output_folder="2000_Til
         if geom.is_empty or geom is None:
             continue
 
+        # Reproject the geometry to WGS84 before generating points
         try:
-            points = generate_random_points(geom, pop)
+            geom_wgs84 = gpd.GeoSeries([geom], crs=merged_gdf.crs).to_crs(epsg=4326).iloc[0]
+            points = generate_random_points(geom_wgs84, pop)
         except Exception as e:
             print(f"Skipping block due to error: {e}")
             continue
@@ -161,7 +166,7 @@ def generate_tile(merged_gdf, zoomlevel, tile_x, tile_y, output_folder="2000_Til
     print(f"Saved {tile_path}")
 
 def main():
-    ky_data = get_info("/Users/sydneyporter/Desktop/pop-dot-map/2000_Census_Year/111.csv")
+    ky_data = get_info("/Users/sydneyporter/Desktop/pop-dot-map/nhgis0006_ds104_1980_tract.csv")
     merged_gdf = connecting_to_s3(ky_data)
-    start_generation(merged_gdf)
+    # start_generation(merged_gdf)
 main()

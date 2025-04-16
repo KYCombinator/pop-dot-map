@@ -13,13 +13,21 @@ os.makedirs(output_folder, exist_ok=True)
 load_dotenv()
 
 for county_code in COUNTY_CODES:
-    URL = "https://api.census.gov/data/2000/dec/sf1"
+    URL = "https://api.census.gov/data/1990/sf1"
     PARAMS = {
-        "get": "NAME,P001001,GEO_ID",  # Total population
-        "for": "block:*",
-        "in": f"state:21 county:{county_code}",
+        "get": "NAME,P0010001",  # Total population
+        "for": "tract:*",
+        "in": f"state:21 county:{county_code}",  # Kentucky (state FIPS code 21)
         "key": os.getenv("CENSUS_API_KEY")
     }
+
+    # URL = "https://api.census.gov/data/2000/dec/sf1"
+    # PARAMS = {
+    #     "get": "NAME,P001001,GEO_ID",  # Total population
+    #     "for": "block:*",
+    #     "in": f"state:21 county:{county_code}",
+    #     "key": os.getenv("CENSUS_API_KEY")
+    # }
 
     # URL = "https://api.census.gov/data/2010/dec/sf1"
     # PARAMS = {
