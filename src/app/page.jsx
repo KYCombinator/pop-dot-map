@@ -152,20 +152,15 @@ const marks = [
 ];
 
 function SliderBar({ sliderValue, setSliderValue }) {
-
   // called when the slider has changed to a new year
   const updateSliderValue = (event) => {
     const newValue = Number(event.target.value);
     setSliderValue(newValue);
-
-    
   };
-
-
 
   return (
     <div>
-      <Box sx={{ height: 600 }}>
+      <Box sx={{ height: 800 }}>
         <Slider
           orientation="vertical"
           value={sliderValue}
