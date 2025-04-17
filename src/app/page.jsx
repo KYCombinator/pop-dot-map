@@ -111,30 +111,14 @@ function MapComponent({ data, newYear }) {
 const marks = [
   {
     value: 1,
-    label: "1950",
-  },
-  {
-    value: 15,
-    label: "1960",
-  },
-  {
-    value: 29,
-    label: "1970",
-  },
-  {
-    value: 43,
-    label: "1980",
-  },
-  {
-    value: 57,
     label: "1990",
   },
   {
-    value: 71,
+    value: 33,
     label: "2000",
   },
   {
-    value: 85,
+    value: 66,
     label: "2010",
   },
   {
@@ -223,33 +207,38 @@ function InfoDropdown() {
       {isOpen && (
         <div className="mt-3 text-sm text-zinc-200">
           <p>
-            This website provides a <strong>"Visual Population Dot Map"</strong> overlay for Louisville and surrounding areas. 
-            The red dots represent population distribution based on census data for selected years from <strong>1950</strong> to <strong>2020</strong>.
+            This website provides a <strong>"Visual Population Dot Map"</strong>{" "}
+            overlay for Louisville and surrounding areas. The red dots represent
+            population distribution based on census data for selected years from{" "}
+            <strong>1990</strong> to <strong>2020</strong>.
           </p>
           <p className="mt-2">
-   * Please note: Data from IPUMS NHGIS is used only for the years <strong>1990</strong> and <strong>earlier</strong>.
-</p>
+            * Please note: Data from IPUMS NHGIS is used only for the year{" "}
+            <strong>1990</strong>.
+          </p>
 
           <p className="mt-2">
-            You can use the slider on the right to toggle between census years. Each year's population data is retrieved dynamically 
-            and displayed as map tiles over Google Maps.
+            You can use the slider on the right to toggle between census years.
+            Each year's population data is retrieved dynamically and displayed
+            as map tiles over Google Maps.
           </p>
           <p className="mt-2">
-            This project is built with <strong>Next.js</strong>, <strong>Tailwind CSS</strong>, and <strong>Google Maps API</strong>. 
-            It serves as a tool to visually understand urban growth, migration trends, and historical data overlays.
+            This project is built with <strong>Next.js</strong>,{" "}
+            <strong>Tailwind CSS</strong>, and <strong>Google Maps API</strong>.
+            It serves as a tool to visually understand urban growth, migration
+            trends, and historical data overlays.
           </p>
           <p className="mt-4 text-sm text-purple-300">
-        Data Source:{" "}
-      <a
-        href="https://www.nhgis.org/citation-and-use-nhgis-data"
-        target="_blank"
-        rel="noopener noreferrer"
-        className="underline hover:text-purple-400"
-      >
-        IPUMS NHGIS - Citation and Use
-      </a>
-    </p>
-
+            Data Source:{" "}
+            <a
+              href="https://www.nhgis.org/citation-and-use-nhgis-data"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline hover:text-purple-400"
+            >
+              IPUMS NHGIS - Citation and Use
+            </a>
+          </p>
         </div>
       )}
     </div>
@@ -268,11 +257,3 @@ function getCoords(urlString) {
   return { x: xValue, y: yValue };
 }
 
-
-// things to add?
-// add something that gives the user more information about what they are looking at and why
-// it was created, etc.
-// add option to overlay the old image from 1800s or something - for fun
-// customize layout so it still looks good on mobile/smaller screens?
-// map takes a few seconds to load first time, add a spinner or something?
-// add a button to remove all overlays in case user wants to look at normal map?
