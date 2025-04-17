@@ -26,6 +26,8 @@ export default function Home() {
     }
   };
 
+  
+
   // fetches when first loading site
   useEffect(() => {
     getS3Images();
@@ -45,12 +47,13 @@ export default function Home() {
 
   return (
     <div className="flex flex-col w-screen h-screen bg-zinc-800">
-      <div className="flex justify-center w-screen">
+      <div className="flex md:justify-center w-screen float-left">
         <div className="px-10 py-5 bg-zinc-700 w-fit rounded-3xl ">
           <Title />
         </div>
+
+        <InfoDropdown />
       </div>
-      <InfoDropdown /> 
 
       <div className="flex flex-grow w-full">
         <div className="w-full h-full rounded-3xl overflow-hidden">
@@ -66,7 +69,7 @@ export default function Home() {
           )}
         </div>
 
-        <div className="w-90 h-full bg-zinc-700 rounded-3xl p-8">
+        <div className=" bg-zinc-700 rounded-3xl p-8 flex shrink">
           <div className="bg-zinc-600 rounded-3xl h-full flex flex-col items-center p-8 justify-evenly">
             <SliderBar
               sliderValue={sliderValue}
@@ -82,17 +85,13 @@ export default function Home() {
 function MapComponent({ data, newYear }) {
   const map = useMap();
   const overlays = useRef([]);
-  // const urls = data["2020_Census_Year"];
-
-  // console.log(data);
-  // console.log(newYear, typeof newYear);
 
   useEffect(() => {
     if (!map || !Array.isArray(data)) return;
-  
+
     overlays.current.forEach((overlay) => overlay.setMap(null));
     overlays.current = [];
-  
+
     data.forEach((tile) => {
       const tileURL = tile.url;
       const xyVals = getCoords(tileURL);
@@ -101,9 +100,7 @@ function MapComponent({ data, newYear }) {
       overlay.setMap(map);
       overlays.current.push(overlay);
     });
-  
   }, [map, data, newYear]);
-  
 
   return null;
 }
@@ -136,7 +133,7 @@ function SliderBar({ sliderValue, setSliderValue }) {
 
   return (
     <div>
-      <Box sx={{ height: 800 }}>
+      <Box sx={{ height: 600 }}>
         <Slider
           orientation="vertical"
           value={sliderValue}
