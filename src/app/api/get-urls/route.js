@@ -19,6 +19,8 @@ const getAllS3Files = async (client, s3Opts) => {
   return totalFiles;
 };
 
+
+
 // groups urls based on the first part of the key, in form: "{year}_Census_Year". will create url for 
 // each item with that year's prefix
 const groupUrlsByYear = (urlsGroupedByYear, file) => {
@@ -33,14 +35,19 @@ const groupUrlsByYear = (urlsGroupedByYear, file) => {
   const keySplit = fileKey.split("/");
   const folderName = keySplit[0];
 
-  // if we dont already have array for that year, make an empty one
-  if (!urlsGroupedByYear[folderName]) {
-    urlsGroupedByYear[folderName] = [];
+  const folders = ['2020_Census_Year', '2010_Census_Year', '2000_Census_Year', '1990_Census_Year'];
+  // only put images/folder info in our object if they are from the years we need
+  if (folders.includes(folderName)) {
+    if (!urlsGroupedByYear[folderName]) {
+      urlsGroupedByYear[folderName] = [];
+    }
+
+    urlsGroupedByYear[folderName].push({
+      url: `https://${bucket}.s3.${s3Config.region}.amazonaws.com/${folderName}/${keySplit[1]}`,
+    });
   }
 
-  urlsGroupedByYear[folderName].push({
-    url: `https://${bucket}.s3.${s3Config.region}.amazonaws.com/${folderName}/${keySplit[1]}`,
-  });
+  
 };
 
 // calls our other functions to access all items in s3 bucket and then group each one by year, 
