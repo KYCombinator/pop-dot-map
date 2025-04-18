@@ -26,8 +26,6 @@ export default function Home() {
     }
   };
 
-  
-
   // fetches when first loading site
   useEffect(() => {
     getS3Images();
@@ -46,12 +44,11 @@ export default function Home() {
   const newYearData = data[yearFolderName];
 
   return (
-    <div className="flex flex-col w-screen h-screen bg-zinc-800">
+    <div className="flex flex-col w-screen h-screen bg-zinc-100 dark:bg-zinc-800">
       <div className="flex md:justify-center w-screen float-left">
-        <div className="px-10 py-5 bg-zinc-700 w-fit rounded-3xl ">
+        <div className="px-10 py-5 bg-zinc-300 dark:bg-zinc-700 w-fit rounded-3xl ">
           <Title />
         </div>
-
         <InfoDropdown />
       </div>
 
@@ -69,8 +66,8 @@ export default function Home() {
           )}
         </div>
 
-        <div className=" bg-zinc-700 rounded-3xl p-8 flex shrink">
-          <div className="bg-zinc-600 rounded-3xl h-full flex flex-col items-center p-8 justify-evenly">
+        <div className=" bg-zinc-300 dark:bg-zinc-700 rounded-3xl p-8 flex shrink ">
+          <div className="bg-zinc-400 dark:bg-zinc-600 rounded-3xl h-full flex flex-col items-center p-5 justify-center">
             <SliderBar
               sliderValue={sliderValue}
               setSliderValue={setSliderValue}
@@ -132,7 +129,7 @@ function SliderBar({ sliderValue, setSliderValue }) {
   };
 
   return (
-    <div>
+    <div className="text-zinc-600">
       <Box sx={{ height: 600 }}>
         <Slider
           orientation="vertical"
@@ -146,10 +143,16 @@ function SliderBar({ sliderValue, setSliderValue }) {
             color: "#9333ea",
             "& .MuiSlider-markLabel": {
               color: "#e5e7eb",
-              fontSize: "1.4rem",
+              fontSize: "1.7rem",
             },
             "& .MuiSlider-thumb": {
               backgroundColor: "#581c87",
+              "&:hover": {
+                boxShadow: "0 0 0 8px rgba(147, 51, 234, .2) !important",
+              },
+              "&:active": {
+                boxShadow: "0 0 0 8px rgba(147, 51, 234, .2) !important",
+              },
             },
           }}
         />
@@ -160,7 +163,7 @@ function SliderBar({ sliderValue, setSliderValue }) {
 
 function Title() {
   return (
-    <h1 className="mb-4 text-3xl font-extrabold text-white dark:text-zinc-200 md:text-5xl lg:text-6xl">
+    <h1 className="mb-4 text-2xl font-extrabold text-zinc-500 dark:text-zinc-200 sm:text-3xl md:text-4xl lg:text-6xl">
       <span className="text-transparent bg-clip-text bg-gradient-to-r to-pink-700 from-purple-600">
         Population
       </span>{" "}
@@ -193,16 +196,16 @@ function InfoDropdown() {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
-    <div className="bg-zinc-700 text-white rounded-xl shadow-md p-4 w-fit absolute top-6 right-6 z-50">
+    <div className="bg-zinc-300 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-200 rounded-xl shadow-md p-4 w-fit absolute top-6 right-6 z-50">
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full text-left text-lg font-semibold text-purple-300 hover:text-purple-200 transition"
+        className="w-full text-left text-lg font-semibold text-purple-600 dark:text-purple-300 hover:text-purple-800 dark:hover:text-purple-200 transition"
       >
         {isOpen ? "▼" : "▶"} More Info
       </button>
 
       {isOpen && (
-        <div className="mt-3 text-sm text-zinc-200">
+        <div className="mt-3 text-sm">
           <p>
             This website provides a <strong>"Visual Population Dot Map"</strong>{" "}
             overlay for Louisville and surrounding areas. The red dots represent
@@ -225,13 +228,13 @@ function InfoDropdown() {
             It serves as a tool to visually understand urban growth, migration
             trends, and historical data overlays.
           </p>
-          <p className="mt-4 text-sm text-purple-300">
+          <p className="mt-4 text-sm text-purple-600 dark:text-purple-300">
             Data Source:{" "}
             <a
               href="https://www.nhgis.org/citation-and-use-nhgis-data"
               target="_blank"
               rel="noopener noreferrer"
-              className="underline hover:text-purple-400"
+              className="underline hover:text-purple-800"
             >
               IPUMS NHGIS - Citation and Use
             </a>
@@ -241,7 +244,6 @@ function InfoDropdown() {
     </div>
   );
 }
-
 
 // extract tile x y coords from the url string
 function getCoords(urlString) {
@@ -253,4 +255,3 @@ function getCoords(urlString) {
 
   return { x: xValue, y: yValue };
 }
-

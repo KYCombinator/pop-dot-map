@@ -3,7 +3,7 @@ import "./globals.css";
 export const metadata = {
   title: "Population Dot Map",
   description:
-    "An interactive population dot map of Louisville from 1950 - 2020.",
+    "An interactive population dot map of Louisville from 1990 - 2020.",
 };
 
 export default function RootLayout({ children }) {
